@@ -1,9 +1,7 @@
 use crate::connect::{ConnectMsg, ConnectNodeDto};
 use crate::ok_client::Walletlocked;
 use crate::styles::ButtonStyles;
-use iced::{
-    button, pick_list, Button, Column, Container, Element, Length, PickList, Row, Svg,
-};
+use iced::{button, pick_list, Button, Column, Container, Element, Length, PickList, Row, Svg};
 
 #[derive(Debug, Clone)]
 pub struct NodeScreen {

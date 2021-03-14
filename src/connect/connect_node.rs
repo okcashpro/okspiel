@@ -174,21 +174,24 @@ impl ConnectNode {
                         NodeOptions::Receive => {
                             self.show_option = Some(NodeOptions::Receive);
                             self.node_screens[position].set_selected_option(node_selected);
-                            let receive_task = list_accounts(
+                            let list_accounts_task = list_accounts(
                                 self.node_screens[position].node_connection_data.clone(),
                             );
 
-                            return Command::perform(receive_task, |m| m);
+                            return Command::perform(list_accounts_task, |m| m);
                         }
                         NodeOptions::Send => {
+                            self.send_screen.set_locked(
+                                self.node_screens[position].node_connection_data.clone(),
+                            );
                             self.show_option = Some(NodeOptions::Send);
                             self.node_screens[position].set_selected_option(node_selected);
 
-                            let receive_task = list_accounts(
+                            let list_accounts_task = list_accounts(
                                 self.node_screens[position].node_connection_data.clone(),
                             );
 
-                            return Command::perform(receive_task, |m| m);
+                            return Command::perform(list_accounts_task, |m| m);
                         }
                         _ => (),
                     }
