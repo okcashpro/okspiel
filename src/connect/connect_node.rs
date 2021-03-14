@@ -18,7 +18,6 @@ pub struct ConnectNode {
     pub name_value: String,
     url: text_input::State,
     pub url_value: String,
-    pub account_value: String,
     username: text_input::State,
     pub username_value: String,
     password: text_input::State,
@@ -51,7 +50,6 @@ pub struct ConnectNode {
 pub enum Message {
     SetName(String),
     SetUrl(String),
-    SetAccount(String),
     SetUsername(String),
     SetPassword(String),
     SetPhrase(String),
@@ -80,7 +78,6 @@ impl ConnectNode {
             name_value: String::from(""),
             url: text_input::State::new(),
             url_value: String::from(""),
-            account_value: String::from(""),
             username: text_input::State::new(),
             username_value: String::from(""),
             password: text_input::State::new(),
@@ -135,9 +132,6 @@ impl ConnectNode {
             }
             Message::SetUrl(addr) => {
                 self.url_value = addr;
-            }
-            Message::SetAccount(account) => {
-                self.account_value = account;
             }
             Message::SetUsername(username) => {
                 self.username_value = username;
@@ -208,7 +202,6 @@ impl ConnectNode {
                 self.connections_node_model = connections.to_vec();
                 self.name_value = String::from("");
                 self.url_value = String::from("");
-                self.account_value = String::from("");
                 self.username_value = String::from("");
                 self.password_value = String::from("");
                 self.phrase_value = String::from("");
@@ -231,7 +224,6 @@ impl ConnectNode {
                 let add_connection_task = add_connection(
                     self.name_value.clone(),
                     self.url_value.clone(),
-                    self.account_value.clone(),
                     self.username_value.clone(),
                     self.password_value.clone(),
                     self.phrase_value.clone(),
@@ -580,7 +572,6 @@ impl ConnectNode {
 async fn add_connection(
     name: String,
     url: String,
-    account: String,
     username: String,
     password: String,
     phrase: String,
@@ -589,8 +580,6 @@ async fn add_connection(
         return Message::SetConnectionError("name of connection is required".to_string());
     } else if url.is_empty() {
         return Message::SetConnectionError("node url is required".to_string());
-    } else if account.is_empty() {
-        return Message::SetConnectionError("account is required".to_string());
     } else if username.is_empty() {
         return Message::SetConnectionError("username is required".to_string());
     } else if password.is_empty() {
