@@ -71,12 +71,11 @@ Please if you find some bug or you have suggestions open an issue or ping me in 
 - [x] Connection to multiple wallets
 - [x] Wallet info, copy addresses and Send amount
 - [x] Migrate glow to wgpu
-- [x] Listing accounts
 - [ ] Compatibility to another OS (only is tested in Linux)
 - [ ] Create executables for different Linux distributions, Mac and Windows
 - [ ] Improve UX
 - [ ] List of transactions
-- [ ] handler multiple accounts instead of only be possible to connect to one account
+- [x] handler multiple accounts instead of only be possible to connect to one account
 - [ ] Add and update phrase
 - [ ] Create accounts
 - [ ] Move amounts between accounts
