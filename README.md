@@ -22,7 +22,7 @@ From terminal:
 5. Copy the assets folder from the root path project to `~/.okspiel`
 6. Enjoy!
 
-**Note**: I will publish the fist crate version `0.2.0` when the version `0.3.0` of `Iced` is released. You can see an open issue [here](https://github.com/hecrj/iced/issues/706#issuecomment-779251854)
+**Note**: I will publish the first crate version `0.2.0` when the version `0.3.0` of `Iced` is released. You can see an open issue [here](https://github.com/hecrj/iced/issues/706#issuecomment-779251854)
 
 ### Start the app
 
