@@ -1,5 +1,5 @@
 use super::{SendAmount, SendAmountMsg};
-use crate::connect::ConnectNodeDto;
+use crate::connect::{AccountAddresses, ConnectNodeDto};
 use crate::ok_client::Walletlocked;
 use iced::{Column, Command, Element, Row, Text};
 
@@ -21,18 +21,20 @@ impl SendScreen {
         }
     }
 
-    pub fn set_addresses(&mut self, addresses: Vec<String>, node: ConnectNodeDto) {
+    pub fn set_account(&mut self, account: AccountAddresses, node: ConnectNodeDto) {
         if !self.senders.is_empty() {
             self.senders = vec![];
         }
 
         self.status = node.status.clone();
 
-        addresses.into_iter().for_each(|address| {
-            let sender = SendAmount::new(address, node.clone());
+        let sender = SendAmount::new(account.account, node);
 
-            self.senders.push(sender);
-        });
+        self.senders.push(sender);
+    }
+
+    pub fn remove_senders(&mut self) {
+        self.senders = vec![];
     }
 
     pub fn set_locked(&mut self, node: ConnectNodeDto) {

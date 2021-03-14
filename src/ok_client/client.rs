@@ -1,11 +1,11 @@
-use super::dtos::{NodeResponse, Request, StakeInfo, WalletInfo};
+use super::dtos::{Account, NodeResponse, Request, StakeInfo, WalletInfo};
 use reqwest::{Client, Error, RequestBuilder};
 use serde_json::{json, value::Value};
 use std::sync::{Arc, Mutex};
 
+#[derive(Clone)]
 pub struct RqClient {
     pub url: String,
-    pub account: String,
     pub username: String,
     pub pwd: String,
     pub phrase: String,
@@ -14,18 +14,11 @@ pub struct RqClient {
 }
 
 impl RqClient {
-    pub fn new(
-        url: String,
-        account: String,
-        username: String,
-        pwd: String,
-        phrase: String,
-    ) -> Self {
+    pub fn new(url: String, username: String, pwd: String, phrase: String) -> Self {
         let client = Client::new();
 
         Self {
             url,
-            account,
             username,
             pwd,
             phrase,
@@ -55,12 +48,12 @@ impl RqClient {
         .await
     }
 
-    pub async fn get_addresses(&self) -> Result<NodeResponse<Vec<String>>, Error> {
+    pub async fn get_addresses(&self, account: String) -> Result<NodeResponse<Vec<String>>, Error> {
         let rq = self.get_request_builder();
 
         rq.json(&Request::from((
             String::from("getaddressesbyaccount"),
-            Some(json!(vec![Value::from(self.account.clone())])),
+            Some(json!(vec![Value::from(account.clone())])),
             json!(*self.nonce),
         )))
         .send()
@@ -71,6 +64,7 @@ impl RqClient {
 
     pub async fn send_to_address(
         &self,
+        account: String,
         to_address: String,
         amount: f64,
     ) -> Result<NodeResponse<Option<String>>, Error> {
@@ -79,7 +73,7 @@ impl RqClient {
         rq.json(&Request::from((
             String::from("sendfrom"),
             Some(json!(vec![
-                Value::from(self.account.clone()),
+                Value::from(account.clone()),
                 Value::from(to_address),
                 Value::from(amount)
             ])),
@@ -140,6 +134,20 @@ impl RqClient {
         .json::<NodeResponse<StakeInfo>>()
         .await
     }
+
+    pub async fn listing_accounts(&self) -> Result<NodeResponse<Vec<Account>>, Error> {
+        let rq = self.get_request_builder();
+
+        rq.json(&Request::from((
+            String::from("listreceivedbyaddress"),
+            Some(json!(vec![Value::from(0), Value::from(true)])),
+            json!(*self.nonce),
+        )))
+        .send()
+        .await?
+        .json::<NodeResponse<Vec<Account>>>()
+        .await
+    }
 }
 
 #[tokio::test]
@@ -150,12 +158,11 @@ async fn should_get_wallet_info() {
     dotenv().ok();
 
     let url = env::var("URL").unwrap();
-    let account = env::var("ACCOUNT").unwrap();
     let rpcuser = env::var("RPCUSER").unwrap();
     let rpcpassword = env::var("RPCPASSWORD").unwrap();
     let phrase = env::var("PHRASE").unwrap();
 
-    let rq_client = RqClient::new(url, account, rpcuser, rpcpassword, phrase);
+    let rq_client = RqClient::new(url, rpcuser, rpcpassword, phrase);
 
     let wallet_info = rq_client.get_wallet_info().await.unwrap();
 
@@ -175,9 +182,9 @@ async fn should_get_addresses() {
     let rpcpassword = env::var("RPCPASSWORD").unwrap();
     let phrase = env::var("PHRASE").unwrap();
 
-    let rq_client = RqClient::new(url, account, rpcuser, rpcpassword, phrase);
+    let rq_client = RqClient::new(url, rpcuser, rpcpassword, phrase);
 
-    let addresses = rq_client.get_addresses().await.unwrap();
+    let addresses = rq_client.get_addresses(account).await.unwrap();
 
     println!("addresses: {:?}", addresses);
 }
@@ -196,10 +203,10 @@ async fn should_send_amount() {
     let phrase = env::var("PHRASE").unwrap();
     let address_to_send_test_amount = env::var("ADDRESS_TO_SEND_TEST_AMOUNT").unwrap();
 
-    let rq_client = RqClient::new(url, account, rpcuser, rpcpassword, phrase);
+    let rq_client = RqClient::new(url, rpcuser, rpcpassword, phrase);
 
     let response = rq_client
-        .send_to_address(address_to_send_test_amount, 0.01)
+        .send_to_address(account, address_to_send_test_amount, 0.01)
         .await;
 
     println!("response: {:?}", response);
@@ -213,12 +220,11 @@ async fn should_unlock_wallet() {
     dotenv().ok();
 
     let url = env::var("URL").unwrap();
-    let account = env::var("ACCOUNT").unwrap();
     let rpcuser = env::var("RPCUSER").unwrap();
     let rpcpassword = env::var("RPCPASSWORD").unwrap();
     let phrase = env::var("PHRASE").unwrap();
 
-    let rq_client = RqClient::new(url, account, rpcuser, rpcpassword, phrase);
+    let rq_client = RqClient::new(url, rpcuser, rpcpassword, phrase);
 
     let response = rq_client.unlock_wallet(1000, false).await;
 
@@ -233,12 +239,11 @@ async fn should_lock_wallet() {
     dotenv().ok();
 
     let url = env::var("URL").unwrap();
-    let account = env::var("ACCOUNT").unwrap();
     let rpcuser = env::var("RPCUSER").unwrap();
     let rpcpassword = env::var("RPCPASSWORD").unwrap();
     let phrase = env::var("PHRASE").unwrap();
 
-    let rq_client = RqClient::new(url, account, rpcuser, rpcpassword, phrase);
+    let rq_client = RqClient::new(url, rpcuser, rpcpassword, phrase);
 
     let response = rq_client.lock_wallet().await;
 
@@ -253,14 +258,32 @@ async fn should_stake_wallet() {
     dotenv().ok();
 
     let url = env::var("URL").unwrap();
-    let account = env::var("ACCOUNT").unwrap();
     let rpcuser = env::var("RPCUSER").unwrap();
     let rpcpassword = env::var("RPCPASSWORD").unwrap();
     let phrase = env::var("PHRASE").unwrap();
 
-    let rq_client = RqClient::new(url, account, rpcuser, rpcpassword, phrase);
+    let rq_client = RqClient::new(url, rpcuser, rpcpassword, phrase);
 
     let response = rq_client.get_staking_info().await;
+
+    println!("response: {:?}", response);
+}
+
+#[tokio::test]
+async fn should_list_accounts() {
+    use dotenv::dotenv;
+    use std::env;
+
+    dotenv().ok();
+
+    let url = env::var("URL").unwrap();
+    let rpcuser = env::var("RPCUSER").unwrap();
+    let rpcpassword = env::var("RPCPASSWORD").unwrap();
+    let phrase = env::var("PHRASE").unwrap();
+
+    let rq_client = RqClient::new(url, rpcuser, rpcpassword, phrase);
+
+    let response = rq_client.listing_accounts().await;
 
     println!("response: {:?}", response);
 }

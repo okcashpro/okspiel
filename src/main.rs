@@ -8,6 +8,7 @@ mod node;
 mod ok_client;
 mod styles;
 mod utils;
+mod accounts;
 
 use crate::connect::{ConnectMsg, ConnectNode};
 use crate::utils::get_connections_dto;

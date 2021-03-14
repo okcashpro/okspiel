@@ -37,6 +37,14 @@ pub struct WalletInfo {
     pub walletlocked: String,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Account {
+    pub address: String,
+    pub account: String,
+    pub amount: f32,
+    pub confirmations: i32,
+}
+
 #[derive(Debug, Deserialize)]
 pub struct NodeResponse<S> {
     pub result: S,
