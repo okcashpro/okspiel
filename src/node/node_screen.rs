@@ -1,6 +1,7 @@
 use crate::connect::{ConnectMsg, ConnectNodeDto};
 use crate::ok_client::Walletlocked;
 use crate::styles::ButtonStyles;
+use dirs::home_dir;
 use iced::{button, pick_list, Button, Column, Container, Element, Length, PickList, Row, Svg};
 
 #[derive(Debug, Clone)]
@@ -72,7 +73,10 @@ impl NodeScreen {
                 .push::<Element<ConnectMsg>>(
                     Button::new(
                         &mut self.delete_connection,
-                        Svg::from_path("assets/trash-2.svg"),
+                        Svg::from_path(format!(
+                            "{}/.okspiel/assets/trash-2.svg",
+                            home_dir().unwrap().to_str().unwrap()
+                        )),
                     )
                     .style(ButtonStyles::Delete)
                     .height(Length::Units(30))
@@ -87,9 +91,15 @@ impl NodeScreen {
                         Button::new(
                             &mut self.button_lock_state,
                             if self.node_connection_data.status == Walletlocked::Locked {
-                                Svg::from_path("assets/unlock.svg")
+                                Svg::from_path(format!(
+                                    "{}/.okspiel/assets/unlock.svg",
+                                    home_dir().unwrap().to_str().unwrap()
+                                ))
                             } else {
-                                Svg::from_path("assets/lock.svg")
+                                Svg::from_path(format!(
+                                    "{}/.okspiel/assets/lock.svg",
+                                    home_dir().unwrap().to_str().unwrap()
+                                ))
                             },
                         )
                         .style(
