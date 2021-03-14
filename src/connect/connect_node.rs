@@ -56,14 +56,14 @@ pub enum Message {
     SetPassword(String),
     SetPhrase(String),
     GetConnections(Vec<ConnectNodeDto>),
-    GetAddresses(Option<AccountAddresses>),
+    GetAddresses(Option<AccountAddresses>, ConnectNodeDto),
     Connect,
     ShowConnectConfig,
     SetConnectionError(String),
     Disconnect(String),
     SelectNodeOption(NodeOptions, String),
     ShowInfo(WalletInfo),
-    ShowAccounts(Vec<AccountAddresses>),
+    ShowAccounts(Vec<AccountAddresses>, ConnectNodeDto),
     ReceiveMsg(ReceiveMessage),
     SendScreenMessage(SendScreenMsg),
     Lock(ConnectNodeDto),
@@ -149,9 +149,9 @@ impl ConnectNode {
                 self.loading = false;
                 self.node_info = Some(info);
             }
-            Message::ShowAccounts(accounts) => {
+            Message::ShowAccounts(accounts, node) => {
                 self.loading = false;
-                self.accounts_view.set_accounts(accounts);
+                self.accounts_view.set_accounts(accounts, node);
             }
 
             Message::SelectNodeOption(node_selected, name) => {
@@ -244,7 +244,7 @@ impl ConnectNode {
 
                 return Command::perform(delete_connection_task, |m| m);
             }
-            Message::GetAddresses(account_option) => {
+            Message::GetAddresses(account_option, node) => {
                 if let Some(account) = account_option {
                     self.accounts_view
                         .set_select_account(account.account.clone());
@@ -253,9 +253,7 @@ impl ConnectNode {
                             NodeOptions::Receive => {
                                 self.receive_screen.set_address(account.addresses)
                             }
-                            NodeOptions::Send => self
-                                .send_screen
-                                .set_account(account, self.current_node.clone()),
+                            NodeOptions::Send => self.send_screen.set_account(account, node),
                             _ => (),
                         }
                     }
@@ -699,7 +697,7 @@ async fn list_accounts(node: ConnectNodeDto) -> Message {
         node.phrase.clone(),
     );
 
-    let accounts_and_addresses_stream = stream::iter(node.accounts);
+    let accounts_and_addresses_stream = stream::iter(node.accounts.clone());
 
     let accounts_and_addresses_stream = accounts_and_addresses_stream.then(|a| async {
         let addresses_result = rq_client.get_addresses(a.account.clone()).await;
@@ -730,7 +728,7 @@ async fn list_accounts(node: ConnectNodeDto) -> Message {
         return Message::SetConnectionError("Not accounts found in this node".to_string());
     }
 
-    Message::ShowAccounts(accounts_and_addresses_filtered)
+    Message::ShowAccounts(accounts_and_addresses_filtered, node)
 }
 
 async fn lock_wallet(node: ConnectNodeDto) -> Message {
