@@ -1,5 +1,5 @@
 use crate::connect::{ConnectNodeDto, ConnectNodeModel};
-use crate::ok_client::{RqClient, Walletlocked};
+use crate::ok_client::{Account, RqClient, Walletlocked};
 use futures::stream::{self, StreamExt};
 
 pub async fn get_connections_dto(connections_model: Vec<ConnectNodeModel>) -> Vec<ConnectNodeDto> {
@@ -7,7 +7,6 @@ pub async fn get_connections_dto(connections_model: Vec<ConnectNodeModel>) -> Ve
     let connections_stream = connections_stream.then(|c| async move {
         let rq_client = RqClient::new(
             c.address.clone(),
-            c.account.clone(),
             c.username.clone(),
             c.password.clone(),
             c.phrase.clone(),
@@ -17,12 +16,18 @@ pub async fn get_connections_dto(connections_model: Vec<ConnectNodeModel>) -> Ve
 
         let staking_info_result = rq_client.get_staking_info().await;
 
+        let accounts: Vec<Account> = if let Ok(response) = rq_client.listing_accounts().await {
+            response.result
+        } else {
+            vec![]
+        };
+
         if let Ok(wallet_info) = wallet_info_result {
             if let Ok(staking_info) = staking_info_result {
                 return ConnectNodeDto::from((
                     c.name,
                     c.address,
-                    c.account,
+                    accounts,
                     c.username,
                     c.password,
                     c.phrase,
@@ -36,7 +41,7 @@ pub async fn get_connections_dto(connections_model: Vec<ConnectNodeModel>) -> Ve
         ConnectNodeDto::from((
             c.name,
             c.address,
-            c.account,
+            accounts,
             c.username,
             c.password,
             c.phrase,

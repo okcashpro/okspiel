@@ -1,20 +1,25 @@
-use crate::ok_client::Walletlocked;
+use crate::ok_client::{Account, Walletlocked};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ConnectNodeModel {
     pub name: String,
     pub address: String,
-    pub account: String,
     pub username: String,
     pub password: String,
     pub phrase: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct AccountAddresses {
+    pub account: String,
+    pub addresses: Vec<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ConnectNodeDto {
     pub name: String,
     pub address: String,
-    pub account: String,
+    pub accounts: Vec<Account>,
     pub username: String,
     pub password: String,
     pub phrase: String,
@@ -23,14 +28,13 @@ pub struct ConnectNodeDto {
     pub connected: bool,
 }
 
-impl From<(String, String, String, String, String, String)> for ConnectNodeModel {
-    fn from(connect_node: (String, String, String, String, String, String)) -> Self {
-        let (name, address, account, username, password, phrase) = connect_node;
+impl From<(String, String, String, String, String)> for ConnectNodeModel {
+    fn from(connect_node: (String, String, String, String, String)) -> Self {
+        let (name, address, username, password, phrase) = connect_node;
 
         Self {
             name,
             address,
-            account,
             username,
             password,
             phrase,
@@ -43,7 +47,6 @@ impl From<ConnectNodeDto> for ConnectNodeModel {
         Self {
             name: connect_node_dto.name,
             address: connect_node_dto.address,
-            account: connect_node_dto.account,
             username: connect_node_dto.username,
             password: connect_node_dto.password,
             phrase: connect_node_dto.phrase,
@@ -55,7 +58,7 @@ impl
     From<(
         String,
         String,
-        String,
+        Vec<Account>,
         String,
         String,
         String,
@@ -68,7 +71,7 @@ impl
         connect_node: (
             String,
             String,
-            String,
+            Vec<Account>,
             String,
             String,
             String,
@@ -77,13 +80,13 @@ impl
             bool,
         ),
     ) -> Self {
-        let (name, address, account, username, password, phrase, status, staking, connected) =
+        let (name, address, accounts, username, password, phrase, status, staking, connected) =
             connect_node;
 
         Self {
             name,
             address,
-            account,
+            accounts,
             username,
             password,
             phrase,
@@ -91,5 +94,13 @@ impl
             staking,
             connected,
         }
+    }
+}
+
+impl From<(String, Vec<String>)> for AccountAddresses {
+    fn from(account_and_addresses: (String, Vec<String>)) -> Self {
+        let (account, addresses) = account_and_addresses;
+
+        Self { account, addresses }
     }
 }

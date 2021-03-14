@@ -1,5 +1,5 @@
 use super::{Address, AddressMessage};
-use iced::{button, scrollable, Column, Element, Row, Scrollable};
+use iced::{button, scrollable, Column, Element, Scrollable};
 
 pub struct ReceiveScreen {
     pub addresses: Vec<Address>,
@@ -47,7 +47,7 @@ impl ReceiveScreen {
                     self.addresses
                         .iter_mut()
                         .enumerate()
-                        .fold(Row::new().padding(20), move |r, address| {
+                        .fold(Column::new().padding(20), move |r, address| {
                             let (i, a) = address;
                             r.push(a.view().map(move |m| Message::AddressMsg(i, m)))
                         })

@@ -3,9 +3,10 @@ use crate::ok_client::RqClient;
 use crate::styles::ButtonStyles;
 use iced::{button, text_input, Align, Button, Column, Command, Element, Row, Text, TextInput};
 
+#[derive(Clone)]
 pub struct SendAmount {
     node: ConnectNodeDto,
-    address: String,
+    account: String,
     amount_input_state: text_input::State,
     amount_input_value: String,
     to_address_state: text_input::State,
@@ -25,10 +26,10 @@ pub enum Message {
 }
 
 impl SendAmount {
-    pub fn new(address: String, node: ConnectNodeDto) -> Self {
+    pub fn new(account: String, node: ConnectNodeDto) -> Self {
         Self {
             node,
-            address,
+            account,
             amount_input_state: text_input::State::new(),
             amount_input_value: String::from(""),
             to_address_state: text_input::State::new(),
@@ -51,6 +52,7 @@ impl SendAmount {
                 self.transaction = None;
                 self.transaction_error = None;
                 let send_amount_task = send_amount(
+                    self.account.clone(),
                     self.to_address_value.clone(),
                     self.amount_input_value.clone(),
                     self.node.clone(),
@@ -76,7 +78,7 @@ impl SendAmount {
             .push::<Row<Message>>(
                 Row::new()
                     .padding(20)
-                    .push(Text::new(&format!("From: {} amount:", self.address)))
+                    .push(Text::new(&format!("From: {} amount:", self.account)))
                     .spacing(10)
                     .push(TextInput::new(
                         &mut self.amount_input_state,
@@ -115,7 +117,12 @@ impl SendAmount {
     }
 }
 
-async fn send_amount(address: String, amount_string: String, node: ConnectNodeDto) -> Message {
+async fn send_amount(
+    account: String,
+    address: String,
+    amount_string: String,
+    node: ConnectNodeDto,
+) -> Message {
     if amount_string.is_empty() {
         return Message::SetTransactionError("amount to send is required".to_string());
     } else if address.is_empty() {
@@ -130,14 +137,13 @@ async fn send_amount(address: String, amount_string: String, node: ConnectNodeDt
 
     let rq_client = RqClient::new(
         node.address.clone(),
-        node.account.clone(),
         node.username.clone(),
         node.password.clone(),
         node.phrase.clone(),
     );
 
     let response = rq_client
-        .send_to_address(address, amount_result.unwrap())
+        .send_to_address(account, address, amount_result.unwrap())
         .await;
 
     if let Err(error) = response {

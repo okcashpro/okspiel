@@ -11,7 +11,10 @@ pub struct ConnectionDB {
 
 impl ConnectionDB {
     pub async fn new() -> Self {
-        let ok_spiel_dir = format!("{}/.okspiel", home_dir().unwrap().to_str().unwrap());
+        let ok_spiel_dir = format!(
+            "{}/.okspiel/database",
+            home_dir().unwrap().to_str().unwrap()
+        );
         if read_dir(&ok_spiel_dir).await.is_err() {
             create_dir(&ok_spiel_dir).await.unwrap();
         }

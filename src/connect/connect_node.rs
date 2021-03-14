@@ -1,4 +1,5 @@
-use super::{ConnectNodeDto, ConnectNodeModel};
+use super::{AccountAddresses, ConnectNodeDto, ConnectNodeModel};
+use crate::accounts::AccountsView;
 use crate::db::ConnectionDB;
 use crate::node::{
     NodeOptions, NodeScreen, ReceiveMessage, ReceiveScreen, SendScreen, SendScreenMsg,
@@ -6,9 +7,10 @@ use crate::node::{
 use crate::ok_client::{RqClient, WalletInfo, Walletlocked};
 use crate::styles::ButtonStyles;
 use crate::utils::get_connections_dto;
+use futures::stream::{self, StreamExt};
 use iced::{
-    button, scrollable, Scrollable, text_input, Align, Button, Checkbox, Column, Command, Container, Element,
-    Length, Row, Text, TextInput,
+    button, scrollable, text_input, Align, Button, Checkbox, Column, Command, Container, Element,
+    Length, Row, Scrollable, Text, TextInput,
 };
 
 pub struct ConnectNode {
@@ -16,7 +18,6 @@ pub struct ConnectNode {
     pub name_value: String,
     url: text_input::State,
     pub url_value: String,
-    account: text_input::State,
     pub account_value: String,
     username: text_input::State,
     pub username_value: String,
@@ -35,6 +36,7 @@ pub struct ConnectNode {
     receive_screen: ReceiveScreen,
     send_screen: SendScreen,
     show_option: Option<NodeOptions>,
+    accounts_view: AccountsView,
     scroll: scrollable::State,
     show_unlock: bool,
     time_unlock_state: text_input::State,
@@ -54,13 +56,14 @@ pub enum Message {
     SetPassword(String),
     SetPhrase(String),
     GetConnections(Vec<ConnectNodeDto>),
+    GetAddresses(Option<AccountAddresses>, ConnectNodeDto),
     Connect,
     ShowConnectConfig,
     SetConnectionError(String),
     Disconnect(String),
     SelectNodeOption(NodeOptions, String),
     ShowInfo(WalletInfo),
-    ShowAddresses(Vec<String>, ConnectNodeDto),
+    ShowAccounts(Vec<AccountAddresses>, ConnectNodeDto),
     ReceiveMsg(ReceiveMessage),
     SendScreenMessage(SendScreenMsg),
     Lock(ConnectNodeDto),
@@ -77,7 +80,6 @@ impl ConnectNode {
             name_value: String::from(""),
             url: text_input::State::new(),
             url_value: String::from(""),
-            account: text_input::State::new(),
             account_value: String::from(""),
             username: text_input::State::new(),
             username_value: String::from(""),
@@ -96,6 +98,7 @@ impl ConnectNode {
             show_option: None,
             receive_screen: ReceiveScreen::new(),
             send_screen: SendScreen::new(),
+            accounts_view: AccountsView::new(),
             scroll: scrollable::State::new(),
             show_unlock: false,
             time_unlock_state: text_input::State::new(),
@@ -105,7 +108,7 @@ impl ConnectNode {
             current_node: ConnectNodeDto::from((
                 String::from(""),
                 String::from(""),
-                String::from(""),
+                vec![],
                 String::from(""),
                 String::from(""),
                 String::from(""),
@@ -146,18 +149,11 @@ impl ConnectNode {
                 self.loading = false;
                 self.node_info = Some(info);
             }
-            Message::ShowAddresses(addresses, node) => {
+            Message::ShowAccounts(accounts, node) => {
                 self.loading = false;
-                if let Some(option) = self.show_option.clone() {
-                    match option {
-                        NodeOptions::Receive => {
-                            self.receive_screen.set_address(addresses);
-                        }
-                        NodeOptions::Send => self.send_screen.set_addresses(addresses, node),
-                        _ => (),
-                    }
-                }
+                self.accounts_view.set_accounts(accounts, node);
             }
+
             Message::SelectNodeOption(node_selected, name) => {
                 let position_option = self.get_position(name);
                 self.remove_messages();
@@ -178,21 +174,24 @@ impl ConnectNode {
                         NodeOptions::Receive => {
                             self.show_option = Some(NodeOptions::Receive);
                             self.node_screens[position].set_selected_option(node_selected);
-                            let receive_task = list_addresses(
+                            let list_accounts_task = list_accounts(
                                 self.node_screens[position].node_connection_data.clone(),
                             );
 
-                            return Command::perform(receive_task, |m| m);
+                            return Command::perform(list_accounts_task, |m| m);
                         }
                         NodeOptions::Send => {
+                            self.send_screen.set_locked(
+                                self.node_screens[position].node_connection_data.clone(),
+                            );
                             self.show_option = Some(NodeOptions::Send);
                             self.node_screens[position].set_selected_option(node_selected);
 
-                            let receive_task = list_addresses(
+                            let list_accounts_task = list_accounts(
                                 self.node_screens[position].node_connection_data.clone(),
                             );
 
-                            return Command::perform(receive_task, |m| m);
+                            return Command::perform(list_accounts_task, |m| m);
                         }
                         _ => (),
                     }
@@ -248,6 +247,21 @@ impl ConnectNode {
 
                 return Command::perform(delete_connection_task, |m| m);
             }
+            Message::GetAddresses(account_option, node) => {
+                if let Some(account) = account_option {
+                    self.accounts_view
+                        .set_select_account(account.account.clone());
+                    if let Some(option) = self.show_option.clone() {
+                        match option {
+                            NodeOptions::Receive => {
+                                self.receive_screen.set_address(account.addresses)
+                            }
+                            NodeOptions::Send => self.send_screen.set_account(account, node),
+                            _ => (),
+                        }
+                    }
+                }
+            }
             Message::ReceiveMsg(receive_message) => self.receive_screen.update(receive_message),
             Message::SendScreenMessage(send_message) => {
                 return self
@@ -299,6 +313,8 @@ impl ConnectNode {
 
     fn remove_selected(&mut self) {
         self.show_option = None;
+        self.receive_screen.set_address(vec![]);
+        self.send_screen.remove_senders();
         for (i, _) in self.node_screens.clone().into_iter().enumerate() {
             let node_name = self.node_screens[i].node_connection_data.name.clone();
             self.node_screens[i].set_selected_option(NodeOptions::NodeName(node_name))
@@ -378,21 +394,6 @@ impl ConnectNode {
                                         )
                                         .into(),
                                     ),
-                                )
-                                .push(
-                                    Row::new()
-                                        .padding(20)
-                                        .spacing(10)
-                                        .push(Text::new("Account: "))
-                                        .push::<Element<Message>>(
-                                            TextInput::new(
-                                                &mut self.account,
-                                                "account",
-                                                self.account_value.as_ref(),
-                                                Message::SetAccount,
-                                            )
-                                            .into(),
-                                        ),
                                 )
                                 .push(
                                     Row::new()
@@ -518,14 +519,21 @@ impl ConnectNode {
                                 Column::new().width(Length::FillPortion(3))
                             }
                         }
-                        NodeOptions::Receive => Column::new().padding(20).push::<Scrollable<Message>>(
-                            Scrollable::new(&mut self.scroll)
-                            .push::<Element<Message>>(self.receive_screen.view().map(Message::ReceiveMsg)),
-                        ),
+                        NodeOptions::Receive => {
+                            Column::new().padding(20).push::<Scrollable<Message>>(
+                                Scrollable::new(&mut self.scroll)
+                                    .push::<Element<Message>>(self.accounts_view.view())
+                                    .push::<Element<Message>>(
+                                        self.receive_screen.view().map(Message::ReceiveMsg),
+                                    ),
+                            )
+                        }
                         NodeOptions::Send => Column::new().padding(20).push::<Scrollable<Message>>(
                             Scrollable::new(&mut self.scroll)
-                            .push::<Element<Message>>(self.send_screen.view().map(Message::SendScreenMessage))
-                            
+                                .push::<Element<Message>>(self.accounts_view.view())
+                                .push::<Element<Message>>(
+                                    self.send_screen.view().map(Message::SendScreenMessage),
+                                ),
                         ),
                         _ => Column::new().width(Length::FillPortion(3)),
                     }
@@ -591,7 +599,6 @@ async fn add_connection(
 
     let rq_client = RqClient::new(
         url.clone(),
-        account.clone(),
         username.clone(),
         password.clone(),
         phrase.clone(),
@@ -612,7 +619,7 @@ async fn add_connection(
     let mut connections = connection_db.get_connections();
 
     connections.push(ConnectNodeModel::from((
-        name, url, account, username, password, phrase,
+        name, url, username, password, phrase,
     )));
 
     let connection_db_string_result = serde_json::to_string(&connections);
@@ -638,7 +645,6 @@ async fn add_connection(
 async fn get_info(node: ConnectNodeDto) -> Message {
     let rq_client = RqClient::new(
         node.address.clone(),
-        node.account.clone(),
         node.username.clone(),
         node.password.clone(),
         node.phrase.clone(),
@@ -686,31 +692,51 @@ async fn delete_connection(name: String) -> Message {
     }
 }
 
-async fn list_addresses(node: ConnectNodeDto) -> Message {
+async fn list_accounts(node: ConnectNodeDto) -> Message {
     let rq_client = RqClient::new(
         node.address.clone(),
-        node.account.clone(),
         node.username.clone(),
         node.password.clone(),
         node.phrase.clone(),
     );
 
-    let addresses_result = rq_client.get_addresses().await;
+    let accounts_and_addresses_stream = stream::iter(node.accounts.clone());
 
-    if let Ok(addresses) = addresses_result {
-        if let Some(err_msg) = addresses.error {
-            return Message::SetConnectionError(err_msg.message);
+    let accounts_and_addresses_stream = accounts_and_addresses_stream.then(|a| async {
+        let addresses_result = rq_client.get_addresses(a.account.clone()).await;
+
+        let empty_account = AccountAddresses::from((String::from(""), vec![]));
+
+        if let Ok(addresses) = addresses_result {
+            if let Some(_err_msg) = addresses.error {
+                return empty_account;
+            }
+            AccountAddresses::from((a.account, addresses.result))
+        } else {
+            empty_account
         }
-        Message::ShowAddresses(addresses.result, node)
-    } else {
-        Message::SetConnectionError("Error to get node info".to_string())
+    });
+
+    let accounts_and_addresses = accounts_and_addresses_stream
+        .collect::<Vec<AccountAddresses>>()
+        .await;
+
+    let accounts_and_addresses_filtered = accounts_and_addresses
+        .to_vec()
+        .into_iter()
+        .filter(|aa| !aa.account.is_empty())
+        .collect::<Vec<AccountAddresses>>();
+
+    if accounts_and_addresses_filtered.is_empty() {
+        return Message::SetConnectionError("Not accounts found in this node".to_string());
     }
+
+    Message::ShowAccounts(accounts_and_addresses_filtered, node)
 }
 
 async fn lock_wallet(node: ConnectNodeDto) -> Message {
     let rq_client = RqClient::new(
         node.address.clone(),
-        node.account.clone(),
         node.username.clone(),
         node.password.clone(),
         node.phrase.clone(),
@@ -738,7 +764,6 @@ async fn lock_wallet(node: ConnectNodeDto) -> Message {
 async fn unlock_wallet(node: ConnectNodeDto, time: String, staking_only: bool) -> Message {
     let rq_client = RqClient::new(
         node.address.clone(),
-        node.account.clone(),
         node.username.clone(),
         node.password.clone(),
         node.phrase.clone(),
