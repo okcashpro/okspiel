@@ -2055,7 +2055,7 @@ dependencies = [
 
 [[package]]
 name = "okspiel"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "copypasta",
  "dirs 3.0.1",
