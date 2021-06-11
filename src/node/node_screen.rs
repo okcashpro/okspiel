@@ -98,9 +98,15 @@ impl NodeScreen {
                         Button::new(
                             &mut self.button_lock_state,
                             if self.node_connection_data.status == Walletlocked::Locked {
-                                Svg::from_path("./assets/unlock.svg")
+                                Svg::from_path(format!(
+                                    "{}/.okspiel/assets/unlock.svg",
+                                    home_dir().unwrap().to_str().unwrap()
+                                ))
                             } else {
-                                Svg::from_path("./assets/lock.svg")
+                                Svg::from_path(format!(
+                                    "{}/.okspiel/assets/lock.svg",
+                                    home_dir().unwrap().to_str().unwrap()
+                                ))
                             },
                         )
                         .style(

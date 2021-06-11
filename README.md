@@ -15,7 +15,12 @@ For now only is tested in Linux but should work in Mac. In Windows could be not 
 
 From terminal:
 
-`cargo install okspiel`
+1. `git clone https://github.com/dancespiele/okspiel.git`
+2. `cd okspiel`
+3. `cargo build --release`
+4. Copy the binary from `okspiel/target/release/okspiel` to `~/.cargo/bin`
+5. Copy the assets folder from the root path project to `~/.okspiel`
+6. Enjoy!
 
 ### Start the app
 
