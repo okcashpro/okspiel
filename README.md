@@ -15,14 +15,7 @@ For now only is tested in Linux but should work in Mac. In Windows could be not 
 
 From terminal:
 
-1. `git clone https://github.com/dancespiele/okspiel.git`
-2. `cd okspiel`
-3. `cargo build --release`
-4. Copy the binary from `okspiel/target/release/okspiel` to `~/.cargo/bin`
-5. Copy the assets folder from the root path project to `~/.okspiel`
-6. Enjoy!
-
-**Note**: I will publish the first crate version `0.2.0` when the version `0.3.0` of `Iced` is released. You can see an open issue [here](https://github.com/hecrj/iced/issues/706#issuecomment-779251854)
+`cargo install okspiel`
 
 ### Start the app
 
