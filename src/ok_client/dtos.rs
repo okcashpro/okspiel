@@ -45,6 +45,18 @@ pub struct Account {
     pub confirmations: i32,
 }
 
+#[derive(Debug, Clone, Deserialize)]
+pub struct Transaction {
+    pub account: String,
+    pub address: String,
+    pub category: String,
+    pub amount: f32,
+    pub confirmations: i32,
+    pub blockhash: String,
+    pub txid: String,
+    pub timereceived: i64,
+}
+
 #[derive(Debug, Deserialize)]
 pub struct NodeResponse<S> {
     pub result: S,

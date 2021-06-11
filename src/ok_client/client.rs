@@ -1,4 +1,4 @@
-use super::dtos::{Account, NodeResponse, Request, StakeInfo, WalletInfo};
+use super::dtos::{Account, NodeResponse, Request, StakeInfo, Transaction, WalletInfo};
 use reqwest::{Client, Error, RequestBuilder};
 use serde_json::{json, value::Value};
 use std::sync::{Arc, Mutex};
@@ -148,6 +148,23 @@ impl RqClient {
         .json::<NodeResponse<Vec<Account>>>()
         .await
     }
+
+    pub async fn listing_transaction(
+        &self,
+        account: String,
+    ) -> Result<NodeResponse<Vec<Transaction>>, Error> {
+        let rq = self.get_request_builder();
+
+        rq.json(&Request::from((
+            String::from("listtransactions"),
+            Some(json!(vec![Value::from(account),])),
+            json!(*self.nonce),
+        )))
+        .send()
+        .await?
+        .json::<NodeResponse<Vec<Transaction>>>()
+        .await
+    }
 }
 
 #[tokio::test]
@@ -284,6 +301,26 @@ async fn should_list_accounts() {
     let rq_client = RqClient::new(url, rpcuser, rpcpassword, phrase);
 
     let response = rq_client.listing_accounts().await;
+
+    println!("response: {:?}", response);
+}
+
+#[tokio::test]
+async fn should_list_transactions() {
+    use dotenv::dotenv;
+    use std::env;
+
+    dotenv().ok();
+
+    let url = env::var("URL").unwrap();
+    let rpcuser = env::var("RPCUSER").unwrap();
+    let rpcpassword = env::var("RPCPASSWORD").unwrap();
+    let phrase = env::var("PHRASE").unwrap();
+    let account = env::var("ACCOUNT").unwrap();
+
+    let rq_client = RqClient::new(url, rpcuser, rpcpassword, phrase);
+
+    let response = rq_client.listing_transaction(account).await;
 
     println!("response: {:?}", response);
 }

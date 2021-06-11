@@ -19,10 +19,16 @@ pub enum NodeOptions {
     Info,
     Receive,
     Send,
+    Transactions,
 }
 
 impl NodeOptions {
-    const OPTIONS: [NodeOptions; 3] = [NodeOptions::Info, NodeOptions::Receive, NodeOptions::Send];
+    const OPTIONS: [NodeOptions; 4] = [
+        NodeOptions::Info,
+        NodeOptions::Receive,
+        NodeOptions::Send,
+        NodeOptions::Transactions,
+    ];
 }
 
 impl std::fmt::Display for NodeOptions {
@@ -35,6 +41,7 @@ impl std::fmt::Display for NodeOptions {
                 NodeOptions::Info => "Info",
                 NodeOptions::Receive => "Receive",
                 NodeOptions::Send => "Send",
+                NodeOptions::Transactions => "Transactions",
             }
         )
     }
@@ -91,15 +98,9 @@ impl NodeScreen {
                         Button::new(
                             &mut self.button_lock_state,
                             if self.node_connection_data.status == Walletlocked::Locked {
-                                Svg::from_path(format!(
-                                    "{}/.okspiel/assets/unlock.svg",
-                                    home_dir().unwrap().to_str().unwrap()
-                                ))
+                                Svg::from_path("./assets/unlock.svg")
                             } else {
-                                Svg::from_path(format!(
-                                    "{}/.okspiel/assets/lock.svg",
-                                    home_dir().unwrap().to_str().unwrap()
-                                ))
+                                Svg::from_path("./assets/lock.svg")
                             },
                         )
                         .style(

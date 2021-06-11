@@ -74,7 +74,7 @@ Please if you find some bug or you have suggestions open an issue or ping me in 
 - [ ] Compatibility to another OS (only is tested in Linux)
 - [ ] Create executables for different Linux distributions, Mac and Windows
 - [ ] Improve UX
-- [ ] List of transactions
+- [x] List of transactions
 - [x] handler multiple accounts instead of only be possible to connect to one account
 - [ ] Add and update phrase
 - [ ] Create accounts

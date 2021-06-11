@@ -2,18 +2,18 @@
 extern crate serde_derive;
 extern crate serde_json;
 
+mod accounts;
 mod connect;
 mod db;
 mod node;
 mod ok_client;
 mod styles;
 mod utils;
-mod accounts;
 
 use crate::connect::{ConnectMsg, ConnectNode};
 use crate::utils::get_connections_dto;
 use db::ConnectionDB;
-use iced::{executor, Application, Command, Element, Settings};
+use iced::{executor, Application, Clipboard, Command, Element, Settings};
 
 struct OkspielMainView {
     connect_node: ConnectNode,
@@ -43,7 +43,11 @@ impl<'a> Application for OkspielMainView {
         "Okspiel".to_string()
     }
 
-    fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
+    fn update(
+        &mut self,
+        message: Self::Message,
+        _clipboard: &mut Clipboard,
+    ) -> Command<Self::Message> {
         match message {
             Message::ConnectMessage(connect_node_msg) => self
                 .connect_node
