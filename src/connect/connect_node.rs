@@ -3,8 +3,9 @@ use crate::accounts::AccountsView;
 use crate::db::ConnectionDB;
 use crate::node::{
     NodeOptions, NodeScreen, ReceiveMessage, ReceiveScreen, SendScreen, SendScreenMsg,
+    TransactionsScreen,
 };
-use crate::ok_client::{RqClient, WalletInfo, Walletlocked};
+use crate::ok_client::{RqClient, Transaction, WalletInfo, Walletlocked};
 use crate::styles::ButtonStyles;
 use crate::utils::get_connections_dto;
 use futures::stream::{self, StreamExt};
@@ -34,6 +35,7 @@ pub struct ConnectNode {
     node_info: Option<WalletInfo>,
     receive_screen: ReceiveScreen,
     send_screen: SendScreen,
+    transaction_screen: TransactionsScreen,
     show_option: Option<NodeOptions>,
     accounts_view: AccountsView,
     scroll: scrollable::State,
@@ -55,6 +57,7 @@ pub enum Message {
     SetPhrase(String),
     GetConnections(Vec<ConnectNodeDto>),
     GetAddresses(Option<AccountAddresses>, ConnectNodeDto),
+    GetTransactions(Vec<Transaction>),
     Connect,
     ShowConnectConfig,
     SetConnectionError(String),
@@ -95,6 +98,7 @@ impl ConnectNode {
             show_option: None,
             receive_screen: ReceiveScreen::new(),
             send_screen: SendScreen::new(),
+            transaction_screen: TransactionsScreen::new(),
             accounts_view: AccountsView::new(),
             scroll: scrollable::State::new(),
             show_unlock: false,
@@ -187,6 +191,16 @@ impl ConnectNode {
 
                             return Command::perform(list_accounts_task, |m| m);
                         }
+                        NodeOptions::Transactions => {
+                            self.show_option = Some(NodeOptions::Transactions);
+                            self.node_screens[position].set_selected_option(node_selected);
+
+                            let list_accounts_task = list_accounts(
+                                self.node_screens[position].node_connection_data.clone(),
+                            );
+
+                            return Command::perform(list_accounts_task, |m| m);
+                        }
                         _ => (),
                     }
                 }
@@ -249,10 +263,18 @@ impl ConnectNode {
                                 self.receive_screen.set_address(account.addresses)
                             }
                             NodeOptions::Send => self.send_screen.set_account(account, node),
+                            NodeOptions::Transactions => {
+                                let transactions = get_transactions(account.account, node);
+
+                                return Command::perform(transactions, |m| m);
+                            }
                             _ => (),
                         }
                     }
                 }
+            }
+            Message::GetTransactions(transactions) => {
+                self.transaction_screen.set_transactions(transactions);
             }
             Message::ReceiveMsg(receive_message) => self.receive_screen.update(receive_message),
             Message::SendScreenMessage(send_message) => {
@@ -306,6 +328,7 @@ impl ConnectNode {
     fn remove_selected(&mut self) {
         self.show_option = None;
         self.receive_screen.set_address(vec![]);
+        self.transaction_screen.remove_transactions();
         self.send_screen.remove_senders();
         for (i, _) in self.node_screens.clone().into_iter().enumerate() {
             let node_name = self.node_screens[i].node_connection_data.name.clone();
@@ -527,6 +550,14 @@ impl ConnectNode {
                                     self.send_screen.view().map(Message::SendScreenMessage),
                                 ),
                         ),
+                        NodeOptions::Transactions => {
+                            Column::new().padding(20).push::<Scrollable<Message>>(
+                                Scrollable::new(&mut self.scroll)
+                                    .push::<Element<Message>>(self.accounts_view.view())
+                                    .spacing(30)
+                                    .push::<Element<Message>>(self.transaction_screen.view()),
+                            )
+                        }
                         _ => Column::new().width(Length::FillPortion(3)),
                     }
                 } else if self.show_unlock {
@@ -772,6 +803,27 @@ async fn unlock_wallet(node: ConnectNodeDto, time: String, staking_only: bool) -
 
         let connections_and_locked = get_connections_dto(connections).await;
         Message::GetConnections(connections_and_locked)
+    } else {
+        Message::SetConnectionError("Fail connecting with the rpc".to_string())
+    }
+}
+
+async fn get_transactions(account: String, node: ConnectNodeDto) -> Message {
+    let rq_client = RqClient::new(
+        node.address.clone(),
+        node.username.clone(),
+        node.password.clone(),
+        node.phrase.clone(),
+    );
+
+    let response_result = rq_client.listing_transaction(account).await;
+
+    if let Ok(response) = response_result {
+        if let Some(err_msg) = response.error {
+            return Message::SetConnectionError(err_msg.message);
+        }
+
+        Message::GetTransactions(response.result.to_vec())
     } else {
         Message::SetConnectionError("Fail connecting with the rpc".to_string())
     }

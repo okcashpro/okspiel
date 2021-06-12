@@ -19,10 +19,16 @@ pub enum NodeOptions {
     Info,
     Receive,
     Send,
+    Transactions,
 }
 
 impl NodeOptions {
-    const OPTIONS: [NodeOptions; 3] = [NodeOptions::Info, NodeOptions::Receive, NodeOptions::Send];
+    const OPTIONS: [NodeOptions; 4] = [
+        NodeOptions::Info,
+        NodeOptions::Receive,
+        NodeOptions::Send,
+        NodeOptions::Transactions,
+    ];
 }
 
 impl std::fmt::Display for NodeOptions {
@@ -35,6 +41,7 @@ impl std::fmt::Display for NodeOptions {
                 NodeOptions::Info => "Info",
                 NodeOptions::Receive => "Receive",
                 NodeOptions::Send => "Send",
+                NodeOptions::Transactions => "Transactions",
             }
         )
     }
