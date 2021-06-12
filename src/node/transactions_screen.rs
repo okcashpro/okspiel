@@ -42,9 +42,12 @@ impl TransactionsScreen {
                                         .push(Row::new().push(Text::new("Category: ")).push(
                                             Text::new(t.category.clone()).color([0.5, 0.5, 0.5]),
                                         ))
-                                        .push(Row::new().push(Text::new("Amount: ")).push(
-                                            Text::new(t.amount.to_string()).color([0.5, 0.5, 0.5]),
-                                        ))
+                                        .push(
+                                            Row::new().push(Text::new("Amount: ")).push(
+                                                Text::new(format!("{} $OK", t.amount.to_string()))
+                                                    .color([0.5, 0.5, 0.5]),
+                                            ),
+                                        )
                                         .push(
                                             Row::new().push(Text::new("Confirmations: ")).push(
                                                 Text::new(t.confirmations.to_string())
